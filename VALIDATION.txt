@@ -1,0 +1,7 @@
+Staqtapp 1X 1.5.3 documentation release
+
+- Full regression suite: 120/120 passed
+- Wheel build: passed
+- PDF render verification: 10 pages, passed
+- README benchmark image and API PDF links: present
+- Engine behavior unchanged from 1.5.2
