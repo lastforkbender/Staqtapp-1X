@@ -1,0 +1,19 @@
+{
+  "staqtapp": "1.4.0",
+  "python": "3.13.5 (main, May  5 2026, 21:05:52) [GCC 14.2.0]",
+  "records": 100000,
+  "vfs_bytes": 2578099,
+  "sidecar_bytes": 2620628,
+  "first_index_build_ms": 325.255677,
+  "first_lookup_after_build_ms": 0.11471,
+  "warm_find_median_ms": 0.0246465,
+  "warm_load_median_ms": 0.038712,
+  "listvars_once_ms": 2.189964,
+  "fresh_process": {
+    "reopen_ms": 6.764983,
+    "first_lookup_ms": 0.162431,
+    "found": true
+  },
+  "lookup_verified": true,
+  "repeats": 50
+}

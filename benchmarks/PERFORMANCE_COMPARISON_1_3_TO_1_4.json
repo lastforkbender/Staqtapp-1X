@@ -1,0 +1,69 @@
+{
+  "date": "2026-07-13",
+  "environment": {
+    "python": "CPython 3.13.5",
+    "platform": "Linux 4.4.0 x86_64, glibc 2.41"
+  },
+  "method": {
+    "fixture": "canonical SQTPP files with short @qp(...) values",
+    "timing": "perf_counter_ns; warm metrics are medians",
+    "note": "environment-specific measurements, not universal hardware claims"
+  },
+  "records_100000": {
+    "vfs_bytes": 2578099,
+    "staqtapp_1_3_0": {
+      "setpath_ms": 208.270568,
+      "first_find_ms": 133.679821,
+      "first_use_total_ms": 341.950389,
+      "warm_find_median_ms": 13.4984775,
+      "warm_load_median_ms": 14.5919425,
+      "listvars_once_ms": 9.126476,
+      "sidecar_bytes": null
+    },
+    "staqtapp_1_4_0": {
+      "first_index_build_ms": 325.255677,
+      "first_lookup_after_build_ms": 0.11471,
+      "first_use_total_ms": 325.370387,
+      "warm_find_median_ms": 0.0246465,
+      "warm_load_median_ms": 0.038712,
+      "listvars_once_ms": 2.189964,
+      "fresh_process_reopen_ms": 6.764983,
+      "fresh_process_first_lookup_ms": 0.162431,
+      "sidecar_bytes": 2620628
+    }
+  },
+  "records_500000": {
+    "vfs_bytes": 13778099,
+    "staqtapp_1_3_0": {
+      "setpath_ms": 999.419774,
+      "first_find_ms": 966.233334,
+      "first_use_total_ms": 1965.653108,
+      "warm_find_median_ms": 135.1173725,
+      "warm_load_median_ms": 132.173638,
+      "listvars_once_ms": 84.128624,
+      "sidecar_bytes": null
+    },
+    "staqtapp_1_4_0": {
+      "first_index_build_ms": 1826.28517,
+      "first_lookup_after_build_ms": 26.970351,
+      "first_use_total_ms": 1853.255521,
+      "warm_find_median_ms": 0.0512965,
+      "warm_load_median_ms": 0.061852,
+      "listvars_once_ms": 38.630713,
+      "fresh_process_reopen_ms": 25.841296,
+      "fresh_process_first_lookup_ms": 0.207568,
+      "sidecar_bytes": 13104360
+    }
+  },
+  "tracemalloc": {
+    "records_100000": {
+      "staqtapp_1_3_0_first_cached_lookup_peak_bytes": 34590274,
+      "staqtapp_1_4_0_first_mapped_index_build_peak_bytes": 29874127
+    },
+    "records_500000": {
+      "staqtapp_1_4_0_sidecar_reopen_current_bytes": 17849,
+      "staqtapp_1_4_0_sidecar_reopen_peak_bytes": 24657,
+      "note": "mmap pages are OS-managed and excluded from tracemalloc"
+    }
+  }
+}
