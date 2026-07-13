@@ -1,0 +1,22 @@
+{
+  "python": "3.13.5 (main, May  5 2026, 21:05:52) [GCC 14.2.0]",
+  "records": 2000,
+  "vfs_bytes_before_change": 46099,
+  "vfs_bytes_after_change": 46090,
+  "create_ms": 0.700776,
+  "batch_add_ms": 8.301188,
+  "listvars_median_ms": 0.184274,
+  "findvar_median_ms": 0.20492,
+  "loadvar_median_ms": 0.2101675,
+  "changevar_ms": 6.139402,
+  "approx_change_write_amplification": 46090,
+  "verification": {
+    "ok": true,
+    "path": "/tmp/staqtapp-bench-rqxybjn9/bench.sqtpp",
+    "sha256": "57b2bc4a0213c4badc3ba5f67ef97861d9fe19e62d22a2c63f6c0d15235dc427",
+    "variables": 2000,
+    "opaque_records": 0,
+    "lock_records": 0,
+    "history_roots": 0
+  }
+}
