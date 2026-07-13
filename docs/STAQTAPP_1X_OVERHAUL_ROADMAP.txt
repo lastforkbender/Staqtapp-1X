@@ -1,0 +1,1710 @@
+STAQTAPP 1.x.x — ORIGINAL ENGINE OVERHAUL ROADMAP
+=================================================
+
+Document status
+---------------
+Purpose: Define the controlled rescue, reconstruction, and completion of the
+original Staqtapp Python implementation while retaining the Staqtapp 1.x.x
+product line and the original public API focus.
+
+Version policy: The overhaul remains within Staqtapp 1.x.x. A 2.0 designation
+is not justified by internal reconstruction alone. Version 2.0 is reserved for
+a deliberate, documented break in the public API contract or abandonment of
+compatibility with existing SQTPP files.
+
+Milestone notation: This roadmap uses symbolic releases such as 1.A.x, 1.B.x,
+and 1.C.x because the original module does not expose a reliable
+machine-readable version declaration. Exact minor and patch numbers must be
+assigned after the baseline repository and release-history audit.
+
+Primary objective
+-----------------
+Preserve the recognizable Staqtapp API and SQTPP storage concepts while
+replacing the monolithic, fragile implementation with a typed, transactional,
+profile-driven engine.
+
+The original module will remain available as:
+
+1. A historical behavior reference.
+2. A legacy SQTPP parser and migration source.
+3. A source of feature names and intended semantics.
+4. A compatibility oracle for verified behavior.
+5. A catalogue of incomplete and experimental feature designs.
+
+The original monolith will not remain the production engine.
+
+NON-NEGOTIABLE ENGINEERING RULES
+================================
+
+1. Remain in the Staqtapp 1.x.x product line.
+
+2. Preserve the original API focus:
+   - Public function names.
+   - Positional argument order.
+   - Default argument behavior where defined.
+   - Return shapes for verified, valid calls.
+   - Existing supported SQTPP file behavior.
+   - Familiar module-level calling patterns.
+
+3. Do not preserve bugs for compatibility:
+   - Silent corruption becomes an explicit error.
+   - Ambiguous success becomes a typed result or typed exception.
+   - Unfinished operations raise NotImplementedError until completed.
+   - Unsafe execution is isolated or redesigned.
+
+4. Preserve source SQTPP files during migration:
+   - Never destructively upgrade the only copy.
+   - Create a migrated or canonicalized destination.
+   - Produce a machine-readable migration report.
+   - Verify record counts, hierarchy, values, locks, and history.
+
+5. Optimize from evidence:
+   - Profile before changing hot paths.
+   - Benchmark every claimed performance improvement.
+   - Track CPU, allocation, I/O, lock, and process costs.
+   - Reject ornamental use of mmap, memoryview, deque, or multiprocessing.
+
+6. Reads are buffer-oriented:
+   - Bytes remain bytes until interpretation is required.
+   - Offsets remain offsets until materialization is required.
+   - Avoid whole-file string decoding for ordinary lookup.
+   - Prefer read-only mmap snapshots and memoryview slices.
+
+7. Writes are transactional:
+   - No in-place variable-length mutation of live mapped files.
+   - Write to a temporary file.
+   - Flush, fsync, and atomically replace.
+   - Preserve recoverable backups according to policy.
+   - Detect conflicting revisions.
+
+8. Diagnostics do not control storage:
+   - Storage emits bounded counters and immutable events.
+   - Diagnostic queues may drop events under pressure.
+   - Diagnostic failure must not block or corrupt storage operations.
+
+9. Multiprocessing is explicit:
+   - Top-level pickleable API wrappers remain available.
+   - Readers may operate concurrently on read-only mappings.
+   - Writes to one VFS are serialized through a transaction coordinator.
+   - Pool orchestration is not misrepresented as parallel write throughput.
+
+10. Advanced features return only after contracts and tests exist:
+    - Pojishon.
+    - Registry and schemas.
+    - Lambda facilities.
+    - NTR/tree facilities.
+    - Dark variables.
+    - Genic and vital variables.
+    - Revar semantics.
+    - Any generated-code execution path.
+
+
+CURRENT BASELINE
+================
+
+Original module
+---------------
+The original staqtapp.py is a large monolithic module containing the public
+facade, storage parsing, storage mutation, codecs, stateful scratch fields,
+advanced facilities, generated-code paths, and experimental branches.
+
+The original module provides the following importable front functions:
+
+- sqtpp_rd1
+- makevfs
+- setpath
+- corevar
+- addvar
+- appvar
+- renamevar_stx
+- removevar
+- listvars
+- listfiles
+- lambdalist
+- genicvar
+- joinvars
+- changevar
+- addtree_stx
+- addbranch_stx
+- getbranch_stx
+- vardata_stx
+- lockvar
+- locklist
+- lockdel
+- keyvar
+- darkvar
+- revar
+- findvar
+- findvar_stx
+- loadvar
+- stalkvar
+- lambdavar
+- registry
+- pojishon
+
+Known dependable transitional subset
+-------------------------------------
+The refactored bridge has verified operation for:
+
+- Creating an SQTPP VFS.
+- Selecting an active VFS path.
+- Listing active VFS metadata.
+- Adding one variable.
+- Adding variable batches.
+- Loading variables.
+- Finding variables.
+- Searching variable data.
+- Changing variable data.
+- Joining variables.
+- Renaming variables.
+- Removing variables.
+- Listing variables.
+- Core-variable bit-pattern round trips.
+- Variable locks.
+- Stalk-variable history.
+- Atomic text persistence.
+- Restricted legacy deserialization.
+- Spawn-based multiprocessing API dispatch.
+
+Known incomplete or high-risk areas
+-----------------------------------
+The following are not considered production-complete merely because they
+compile:
+
+- genicvar.
+- vitalvar internals.
+- Pojishon modes.
+- Dark-variable operations.
+- Registry-generated Python.
+- Lambda-generated Python.
+- Registry schemas.
+- NTR/tree branches.
+- Revar semantics.
+- Private unfinished modes.
+- Generated source import and evaluation.
+- Broad exception paths that collapse unrelated failures into sentinels.
+- Full directory, folder, subfolder, and embedded-file CRUD.
+
+The overhaul must not invent missing semantics silently. Each uncertain feature
+requires a contract-recovery stage before implementation.
+
+
+TARGET ARCHITECTURE
+===================
+
+Recommended package layout
+--------------------------
+
+staqtapp/
+    __init__.py
+    api.py
+    compatibility.py
+    errors.py
+    results.py
+    config.py
+
+    engine/
+        model.py
+        format.py
+        parser.py
+        serializer.py
+        index.py
+        mmap_reader.py
+        transaction.py
+        identity.py
+        recovery.py
+
+    codec/
+        primitives.py
+        corevar.py
+        values.py
+        legacy.py
+
+    features/
+        variables.py
+        containers.py
+        locks.py
+        history.py
+        trees.py
+        lambdas.py
+        registry.py
+        pojishon.py
+        darkvar.py
+        genicvar.py
+        revar.py
+
+    runtime/
+        dispatcher.py
+        multiprocessing_api.py
+        diagnostics.py
+        profiling.py
+
+    migration/
+        scanner.py
+        canonicalizer.py
+        verifier.py
+        report.py
+
+    legacy/
+        original.py
+        bridge.py
+        behavior_oracle.py
+
+    tests/
+        fixtures/
+        compatibility/
+        corruption/
+        concurrency/
+        performance/
+
+Compatibility facade
+--------------------
+The public facade remains recognizable:
+
+    makevfs(...)
+    setpath(...)
+    addvar(...)
+    appvar(...)
+    loadvar(...)
+    changevar(...)
+    renamevar_stx(...)
+    removevar(...)
+    listvars(...)
+    listfiles(...)
+    ...
+
+The facade performs:
+
+1. Argument normalization.
+2. Compatibility handling.
+3. Validation.
+4. Dispatch into the typed engine.
+5. Return-shape adaptation.
+6. Deprecation warnings where necessary.
+7. Typed exception translation.
+
+The facade does not perform raw file parsing or raw string splicing.
+
+Typed VFS model
+---------------
+The internal model must represent:
+
+- VFS identity.
+- Format version.
+- Directory.
+- Folder.
+- Subfolder.
+- Embedded file.
+- Variable.
+- Variable type.
+- Variable payload span.
+- Lock.
+- Stalk/history record.
+- Tree record.
+- Registry record.
+- Feature-extension record.
+- Unknown legacy record.
+
+Unknown records must be preserved where possible so canonical rewrites do not
+silently destroy data from unsupported legacy features.
+
+Storage format layer
+--------------------
+The format module defines all structural markers, delimiters, escaping rules,
+record boundaries, field encodings, checksums, revision fields, and extension
+records.
+
+No feature module may independently hard-code format markers.
+
+Parser
+------
+The parser has two levels:
+
+Level 1: Structural scan
+- Operates on mmap-backed bytes.
+- Finds record spans and type identifiers.
+- Builds compact indexes.
+- Avoids eager string decoding.
+- Preserves unknown spans.
+
+Level 2: Lazy materialization
+- Decodes names and values only when requested.
+- Uses memoryview slices for payload access.
+- Produces typed objects only as needed.
+- Caches decoded values within bounded limits.
+
+Serializer
+----------
+The serializer:
+
+- Produces one canonical representation for each supported record.
+- Streams large unchanged ranges where practical.
+- Preserves unsupported records when safe.
+- Rejects irreconcilably malformed structures.
+- Calculates checksums and revision metadata.
+- Never edits a live file with uncontrolled string replacement.
+
+Transaction layer
+-----------------
+Every mutation follows:
+
+1. Acquire process-safe VFS write lock.
+2. Confirm file identity and expected revision.
+3. Open a read-only snapshot.
+4. Parse or load a validated index.
+5. Construct a mutation plan.
+6. Write a temporary destination.
+7. Flush user-space buffers.
+8. fsync the destination.
+9. Atomically replace the active VFS.
+10. fsync the containing directory where supported.
+11. Publish the new revision.
+12. Invalidate stale mappings and indexes.
+13. Release the lock.
+14. Emit a diagnostic event outside the critical section where possible.
+
+A crash before atomic replacement leaves the original intact. Recovery tooling
+handles orphan temporary files and validated backups.
+
+
+PERFORMANCE ARCHITECTURE
+========================
+
+mmap
+----
+Use read-only mmap for:
+
+- Initial structural scans.
+- Variable lookup.
+- Directory listing.
+- Embedded-file reads.
+- Integrity checks.
+- Migration scans.
+- Building offset indexes.
+- Sharing operating-system page cache across reader processes.
+
+Do not use writable mmap as the general mutation mechanism for variable-length
+records.
+
+A mapped snapshot is invalidated when any of these change:
+
+- Device identifier.
+- Inode or file identity.
+- File size.
+- Modification time in nanoseconds.
+- Internal revision.
+- Format version.
+
+memoryview
+----------
+Use memoryview for:
+
+- Zero-copy record slicing.
+- Header decoding.
+- Checksum input.
+- Payload transfer.
+- Codec input.
+- Embedded-file extraction.
+- struct.unpack_from operations.
+- Copying unchanged ranges.
+
+Avoid calling bytes() or decode() inside hot loops unless the public operation
+requires an owned or textual result.
+
+deque
+-----
+Use bounded deque structures for:
+
+- Diagnostic events.
+- Recent transaction records.
+- Parser work queues.
+- Breadth-first tree traversal.
+- Deferred mutation plans.
+- Recent negative lookups.
+- Bounded history caches.
+
+A normal deque is process-local. Cross-process transfer uses a bounded
+multiprocessing queue, a dedicated coordinator, or a designed shared-memory
+ring.
+
+Other required tools
+--------------------
+
+dataclass(slots=True)
+- Compact typed records.
+- Deterministic fields.
+- Lower per-instance overhead.
+
+struct.Struct
+- Precompiled binary header parsing.
+- Fixed-width metadata.
+- Zero-copy unpack_from use.
+
+array
+- Compact offset and hash tables where Python lists are too expensive.
+
+bytearray
+- Mutable record assembly for small and medium output units.
+
+bisect
+- Ordered physical indexes and range searches.
+
+dict
+- Exact variable and path lookup unless profiling proves another structure is
+  superior.
+
+hashlib
+- Buffer-based content and structural checksums.
+
+os.copy_file_range / os.sendfile
+- Optional fast copying of unchanged large regions when supported and proven
+  beneficial.
+
+sys.intern
+- Only for highly repeated structural strings after allocation profiling.
+
+functools.lru_cache
+- Only for bounded, pure decoding or schema operations.
+
+Shared memory
+- Consider only after measuring process serialization and index rebuild cost.
+- Do not introduce before single-process correctness is complete.
+
+Performance doctrine
+--------------------
+The new engine must report both speed and write amplification.
+
+A fast lookup paired with catastrophic whole-file rewrite behavior is not a
+complete performance success. Measurements must include:
+
+- Open latency.
+- Cold-cache and warm-cache lookup.
+- Index construction time.
+- Decode latency.
+- Update latency.
+- Bytes copied per update.
+- Bytes written per update.
+- Peak memory.
+- Python allocation count.
+- Lock hold duration.
+- fsync duration.
+- Reader scaling.
+- Writer contention.
+- Process startup and serialization cost.
+
+
+PUBLIC API RECOVERY MAP
+=======================
+
+Tier 1 — Core compatibility surface
+-----------------------------------
+These functions receive the earliest production-grade implementation:
+
+makevfs
+- Create a new VFS with validated initial hierarchy.
+- Never overwrite an existing VFS without explicit policy.
+- Return compatibility-adapted result.
+
+setpath
+- Select an existing VFS hierarchy.
+- Validate exact path components.
+- Replace global implicit state internally with a context-aware path manager
+  while preserving the original call.
+
+addvar
+- Add one variable.
+- Reject duplicates and malformed names.
+- Preserve verified legacy value semantics.
+
+appvar
+- Add a validated batch.
+- Reject duplicate names in the request.
+- Reject collisions with existing variables.
+- Preserve intentional null-fill behavior only if confirmed as contract.
+
+loadvar
+- Preserve existing valid calling convention and return shape.
+- Internally support indexed lazy reads.
+- Optional future keyword features may be added without breaking positional
+  calls.
+
+changevar
+- Transactionally replace variable data.
+- Preserve locks and history according to documented semantics.
+
+renamevar_stx
+- Rename a normal or stalk-related variable according to explicit mode rules.
+- Update indexes and references transactionally.
+
+removevar
+- Remove a variable without corrupting adjacent records.
+- Respect locks.
+- Define history retention or removal behavior.
+
+findvar
+- Exact indexed lookup.
+
+findvar_stx
+- Search stalk/history structures with specified ordering and result shape.
+
+listvars
+- Return variables in documented deterministic order.
+
+vardata_stx
+- Literal or regular-expression search.
+- Apply bounds and safe regex policy for untrusted patterns.
+
+joinvars
+- Specify input ordering, type coercion, collision handling, and source
+  retention.
+
+corevar
+- Preserve verified bit encoding and decoding.
+- Move codec implementation into an isolated module with property tests.
+
+Tier 2 — VFS container operations
+---------------------------------
+The original implementation creates initial hierarchy but lacks a complete,
+clear public CRUD contract. Staqtapp 1.x.x must add a compatible extension
+surface for:
+
+- Create directory.
+- Rename directory.
+- Remove directory.
+- Create folder.
+- Rename folder.
+- Remove folder.
+- Create subfolder.
+- Rename subfolder.
+- Remove subfolder.
+- Create embedded file.
+- Read embedded file.
+- Write embedded file.
+- Rename embedded file.
+- Remove embedded file.
+- List container contents.
+- Move supported records.
+- Reject duplicate paths.
+- Reject traversal.
+- Handle non-empty deletion explicitly.
+
+Names should follow original Staqtapp vocabulary. Final names are chosen only
+after auditing dormant internal methods and historical examples so a second,
+conflicting API is not invented.
+
+listfiles
+- Becomes a real structured listing API.
+- Preserve any verified old side effects through the compatibility layer.
+- Add deterministic returned metadata.
+
+Tier 3 — Locks and history
+--------------------------
+
+lockvar
+locklist
+lockdel
+keyvar
+stalkvar
+
+Requirements:
+
+- Explicit lock ownership semantics.
+- Deterministic lock matching.
+- No silent lock bypass.
+- Transaction-safe lock record updates.
+- Defined stale-lock behavior.
+- Bounded and indexed history reads.
+- History retention and compaction policy.
+- Multiprocessing tests with conflicting writers.
+
+Tier 4 — Trees
+--------------
+
+addtree_stx
+addbranch_stx
+getbranch_stx
+
+Recovery steps:
+
+1. Extract all reachable modes from the original code.
+2. Build valid and invalid example fixtures.
+3. Define tree identity, key types, ordering, duplicate behavior, and cycles.
+4. Separate tree storage from variable storage.
+5. Replace recursive fragile parsing with an iterative work queue where useful.
+6. Use deque for breadth-first traversal.
+7. Add corruption and depth tests.
+8. Preserve original result shapes for verified calls.
+
+Trees remain experimental until every public mode has integration fixtures.
+
+Tier 5 — Lambda facilities
+--------------------------
+
+lambdalist
+lambdavar
+
+Requirements:
+
+- Catalogue the original lambda storage format.
+- Stop importing or evaluating arbitrary generated Python.
+- Define a constrained expression model or explicit trusted mode.
+- Parse stored definitions into a safe intermediate representation.
+- Validate parameter counts and types.
+- Enforce execution limits.
+- Preserve listing and invocation behavior where safely possible.
+- Provide a migration report for unsupported lambda expressions.
+
+No arbitrary eval or import of VFS-generated source is accepted as the default
+production design.
+
+Tier 6 — Registry and schema
+----------------------------
+
+registry
+
+Requirements:
+
+- Define key identity, schema identity, value types, and mutation behavior.
+- Replace generated module import with a typed registry store.
+- Replace stored lambda evaluation with constrained validation.
+- Preserve simple primitive and container values.
+- Reject arbitrary custom globals during deserialization.
+- Add schema versioning.
+- Add schema migration.
+- Provide deterministic read/write results.
+- Preserve unknown legacy entries during migration where possible.
+
+Tier 7 — Pojishon
+-----------------
+
+pojishon
+
+Pojishon must be handled as a separate subsystem project, not patched casually
+inside the storage core.
+
+Required work:
+
+1. Inventory every public mode and optional parameter.
+2. Recover grammar and data model.
+3. Build a formal grammar or parser specification.
+4. Separate syntax parsing from VFS persistence.
+5. Define exact error locations and error codes.
+6. Remove generated Python and unrestricted AST assumptions.
+7. Build round-trip fixtures.
+8. Test large inputs and malformed nesting.
+9. Add compatibility adapters for verified original modes.
+10. Mark unsupported original modes explicitly.
+
+Tier 8 — Dark, genic, vital, and revar facilities
+-------------------------------------------------
+
+darkvar
+genicvar
+vitalvar internals
+revar
+
+These features are specification-recovery work.
+
+For each feature:
+
+- Locate every branch and sentinel.
+- Determine reachable versus dead code.
+- Find historical examples if available.
+- Produce a feature contract.
+- Define persistence representation.
+- Define interaction with locks, history, trees, and migration.
+- Implement in isolation.
+- Add direct integration tests.
+- Expose only completed modes.
+
+No mode may return None as false success.
+
+sqtpp_rd1
+---------
+Testing-only legacy entry point.
+
+Plan:
+
+- Remove from ordinary documented API.
+- Preserve as a compatibility/testing alias during the 1.x.x transition.
+- Replace with explicit parser diagnostic tools.
+- Emit a deprecation warning when appropriate.
+
+
+MULTIPROCESSING AND CALLABLE BOTTOM-MODULE API
+==============================================
+
+Required public dispatch
+------------------------
+The module-level facade remains callable by multiprocessing spawn workers.
+
+Required functions:
+
+invoke_api(name, args=(), kwargs=None)
+- Dispatch only allow-listed public API names.
+- Reject private or arbitrary attribute access.
+- Normalize results into pickleable forms.
+- Preserve typed error metadata where pool boundaries require it.
+
+map_api_calls(calls, processes=None, start_method="spawn", chunksize=1)
+- Accept tuple and mapping call specifications.
+- Validate every call before pool creation.
+- Use top-level workers only.
+- Support ordered result return.
+- Document that writes to one VFS remain serialized.
+
+Optional future functions:
+
+imap_api_calls(...)
+- Streaming ordered results.
+
+imap_unordered_api_calls(...)
+- Streaming unordered results for independent read workloads.
+
+submit_api_call(...)
+- Executor-oriented integration.
+
+Bottom-module guard
+-------------------
+The importable module retains:
+
+    if __name__ == "__main__":
+        multiprocessing.freeze_support()
+
+No application code, demonstration mutation, or test execution occurs under
+the production module guard.
+
+Process model
+-------------
+Preferred model:
+
+Many reader processes
+- Open read-only mmap snapshots.
+- Reuse operating-system page cache.
+- Maintain per-process lightweight indexes or load verified sidecar indexes.
+- Remap after revision change.
+
+One writer coordinator per VFS
+- Serializes mutation plans.
+- Holds the shortest practical exclusive lock.
+- Applies transaction writes.
+- Publishes revision changes.
+- Never depends on the diagnostic consumer.
+
+Independent VFS files
+- May be written concurrently because their locks and transaction identities
+  are separate.
+
+Global path compatibility
+-------------------------
+The original API uses selected-path state. Internally, the new engine should
+support explicit VFS contexts:
+
+    with open_vfs(path) as vfs:
+        ...
+
+The compatibility facade may resolve the selected legacy path and pass an
+explicit context internally.
+
+This prevents the new core from inheriting unnecessary global state while
+preserving old calls.
+
+
+DIAGNOSTICS AND PROFILING
+=========================
+
+Diagnostic subsystem
+---------------------
+The diagnostic layer consumes immutable events such as:
+
+- VFS opened.
+- Index loaded.
+- Index rebuilt.
+- Record decoded.
+- Transaction started.
+- Transaction committed.
+- Transaction rolled back.
+- Lock waited.
+- Lock acquired.
+- Lock released.
+- Mapping invalidated.
+- Migration warning.
+- Corruption detected.
+- Diagnostic event dropped.
+
+Use bounded storage:
+
+- Process-local deque for recent events.
+- Bounded multiprocessing queue for optional external aggregation.
+- Drop-on-full policy for non-critical telemetry.
+- Counter for dropped events.
+
+Never place logging, formatting, JSON serialization, network I/O, or UI updates
+inside the critical storage lock.
+
+Profiling suite
+---------------
+Required profiling tools may include:
+
+- cProfile for broad call profiling.
+- py-spy for low-overhead sampling.
+- Scalene for CPU and allocation separation.
+- line_profiler for confirmed hot functions.
+- tracemalloc for allocation snapshots.
+- pyperf for repeatable benchmark execution.
+- Platform I/O and process counters where available.
+
+Profiling outputs are stored by release and workload.
+
+Benchmark corpus
+----------------
+
+Small VFS
+- 1 MB.
+- Hundreds of variables.
+- Mixed values.
+
+Medium VFS
+- 100 MB.
+- Hundreds of thousands of records.
+
+Large VFS
+- 1 GB or larger.
+- Large embedded-file spans.
+- High-cardinality indexes.
+
+Fragmented legacy VFS
+- Repeated edits.
+- Unknown records.
+- Stalk history.
+- Locks.
+- Advanced records.
+
+Corrupted VFS
+- Truncated records.
+- Invalid lengths.
+- Duplicate names.
+- Broken hierarchy.
+- Invalid encodings.
+- Unexpected markers.
+
+Required benchmark operations
+-----------------------------
+
+- Create VFS.
+- Open cold.
+- Open warm.
+- Build index.
+- Load sidecar index.
+- Exact variable lookup.
+- Negative lookup.
+- List all variables.
+- Prefix listing.
+- Read small value.
+- Read large value.
+- Change small value in a large VFS.
+- Add batch.
+- Remove variable.
+- Rename variable.
+- Read embedded range.
+- Replace embedded file.
+- Verify checksum.
+- Scan malformed file.
+- Eight concurrent readers.
+- Mixed readers and one writer.
+- Independent writers on independent VFS files.
+- Multiprocessing pool dispatch overhead.
+
+Release performance report
+--------------------------
+Record:
+
+- Median.
+- P95.
+- P99.
+- Operations per second.
+- Peak resident memory.
+- Python allocations.
+- Bytes read.
+- Bytes written.
+- Write amplification.
+- Lock wait.
+- Lock hold.
+- fsync duration.
+- Index size.
+- Index build time.
+- Process startup overhead.
+- Serialization overhead.
+
+No performance claim is accepted without a baseline comparison.
+
+
+INDEX DESIGN
+============
+
+Initial in-memory index
+-----------------------
+Each variable or record entry should contain only the data needed for lookup:
+
+- Stable name hash.
+- Name offset.
+- Name length.
+- Record start.
+- Record end.
+- Payload start.
+- Payload length.
+- Record type.
+- Flags.
+- Revision or generation.
+- Optional checksum.
+
+Exact lookup
+------------
+Use a dictionary from normalized name to compact entry identifier unless
+profiling demonstrates a better option.
+
+Physical order
+--------------
+Use a compact ordered offset table for:
+
+- Canonical serialization.
+- Range copying.
+- Iteration.
+- Corruption detection.
+- Binary searches over physical spans.
+
+Sidecar index
+-------------
+A sidecar index is allowed within Staqtapp 1.x.x if:
+
+- It is disposable.
+- It contains no unique data.
+- It is verified against VFS identity and revision.
+- Corruption causes rebuild, not VFS failure.
+- Existing SQTPP files remain readable without it.
+- Its format is versioned.
+- It is written atomically.
+
+Possible suffix: .sqti, subject to naming audit.
+
+Embedded index
+--------------
+An embedded index may be considered later, but only with a compatible format
+extension and migration plan.
+
+
+ERROR MODEL
+===========
+
+Replace broad opaque exception routing with typed exceptions:
+
+- StaqtappError
+- VFSNotFoundError
+- VFSAlreadyExistsError
+- InvalidVFSNameError
+- InvalidPathError
+- PathNotSelectedError
+- FormatError
+- CorruptRecordError
+- UnsupportedRecordError
+- DuplicateVariableError
+- VariableNotFoundError
+- VariableLockedError
+- DuplicateContainerError
+- ContainerNotFoundError
+- NonEmptyContainerError
+- ConflictError
+- TransactionError
+- RecoveryError
+- MigrationError
+- UnsupportedLegacyFeatureError
+- UnsafeLegacyContentError
+
+Compatibility adapters may translate typed errors to legacy sentinels only when
+a sentinel is demonstrably part of the verified public contract.
+
+Internal code must not use blanket exception handling as normal control flow.
+
+
+SECURITY AND SAFETY
+===================
+
+Mandatory changes
+-----------------
+
+- No unrestricted pickle loading.
+- No arbitrary eval.
+- No arbitrary exec.
+- No automatic import of generated VFS Python.
+- No path traversal.
+- No implicit overwrite.
+- No regex denial-of-service exposure without controls.
+- No silent malformed-record recovery that changes data.
+- No unbounded diagnostic queue.
+- No unbounded cache.
+- No unverified sidecar index use.
+- No mutation without revision conflict detection.
+
+Trusted legacy mode
+-------------------
+A separately named, explicitly enabled migration-only mode may inspect legacy
+content that the safe engine refuses. It must:
+
+- Never execute stored content.
+- Run with narrow privileges where practical.
+- Produce a report.
+- Require explicit opt-in.
+- Write only to a new destination.
+
+
+ROADMAP PHASES
+==============
+
+PHASE 0 — Freeze, inventory, and evidence capture
+-------------------------------------------------
+Provisional release: 1.A.0 development baseline
+
+Goals:
+- Preserve the original module unchanged.
+- Preserve the stabilized bridge.
+- Establish repository structure.
+- Assign the actual 1.x.x baseline version.
+- Collect representative SQTPP fixtures.
+- Inventory public and private operations.
+- Identify dead, unreachable, duplicate, and placeholder branches.
+- Capture current behavior before rewriting.
+
+Deliverables:
+- Immutable original source checksum.
+- Immutable bridge source checksum.
+- Public API inventory.
+- Feature matrix.
+- SQTPP marker catalogue.
+- Known fixture library.
+- Current-behavior test harness.
+- Known-defect register.
+- Versioning decision record.
+
+Exit gate:
+- Every public function is classified as verified, partial, unsafe,
+  incomplete, unreachable, or unknown.
+- No production changes are made to the frozen original artifact.
+
+PHASE 1 — Compatibility contract and regression oracle
+-------------------------------------------------------
+Provisional release: 1.A.1
+
+Goals:
+- Convert verified behavior into executable tests.
+- Record exact signatures and return shapes.
+- Separate valid compatibility from accidental bugs.
+- Define typed error policy.
+- Establish warning and deprecation policy.
+
+Deliverables:
+- Signature tests for every public function.
+- Golden-result fixtures for verified operations.
+- Golden-file SQTPP fixtures.
+- Corruption fixtures.
+- Cross-platform path fixtures.
+- Compatibility decision log.
+- Legacy sentinel catalogue.
+
+Exit gate:
+- Core variable operations are reproducible without reading the original
+  implementation manually.
+- Known bugs are explicitly marked as not preserved.
+
+PHASE 2 — Engine foundation and mapped read path
+-------------------------------------------------
+Provisional release: 1.B.0 alpha
+
+Goals:
+- Implement typed model.
+- Implement formal format constants.
+- Implement mmap-backed structural scanner.
+- Implement memoryview-based lazy decoding.
+- Build compact in-memory indexes.
+- Open legacy SQTPP files read-only.
+
+Deliverables:
+- model.py.
+- format.py.
+- mmap_reader.py.
+- parser.py.
+- index.py.
+- File identity and revision model.
+- Parser diagnostics.
+- Read-only compatibility facade for list/find/load operations.
+- Parser fuzz and corruption tests.
+- Baseline performance report.
+
+Exit gate:
+- Supported fixtures parse without whole-file text decoding.
+- listvars, findvar, loadvar, listfiles, and read-only vardata paths match
+  verified behavior.
+- Unknown records are preserved as opaque spans.
+
+PHASE 3 — Canonical serializer and transaction writer
+------------------------------------------------------
+Provisional release: 1.B.1 alpha
+
+Goals:
+- Implement canonical serialization.
+- Implement atomic transaction workflow.
+- Implement conflict detection.
+- Implement backup and recovery policy.
+- Minimize copying of unchanged ranges.
+
+Deliverables:
+- serializer.py.
+- transaction.py.
+- recovery.py.
+- Transaction journal metadata if required.
+- Atomic replacement tests.
+- Crash-point simulation.
+- Cross-process writer lock tests.
+- Write amplification metrics.
+
+Exit gate:
+- Simulated interruption cannot corrupt the original committed VFS.
+- Conflicting writers produce ConflictError or serialize correctly.
+- Reopened files parse and validate after every mutation.
+
+PHASE 4 — Core variable parity
+------------------------------
+Provisional release: 1.B.2 beta
+
+Goals:
+- Reimplement Tier 1 variable operations on the new engine.
+- Preserve original facade.
+- Remove raw string mutation from these operations.
+- Complete corevar codec isolation.
+
+Scope:
+- addvar.
+- appvar.
+- loadvar.
+- changevar.
+- renamevar_stx.
+- removevar.
+- findvar.
+- findvar_stx.
+- listvars.
+- vardata_stx.
+- joinvars.
+- corevar.
+
+Deliverables:
+- variables.py.
+- corevar codec.
+- Property-based codec tests.
+- Batch validation tests.
+- Lock-aware mutation hooks.
+- Compatibility return adapters.
+- Performance comparison against bridge.
+
+Exit gate:
+- All verified core CRUD tests pass through the new engine.
+- No core variable operation uses the original monolithic parser.
+- No operation can silently create duplicate records.
+
+PHASE 5 — Complete VFS hierarchy and embedded-file CRUD
+--------------------------------------------------------
+Provisional release: 1.C.0 beta
+
+Goals:
+- Finish the missing practical VFS surface.
+- Make directories, folders, subfolders, and embedded files first-class.
+- Preserve original makevfs and setpath calls.
+
+Deliverables:
+- containers.py.
+- Hierarchical path model.
+- Directory/folder/subfolder CRUD.
+- Embedded-file CRUD.
+- Listing and move operations.
+- Non-empty deletion policy.
+- Duplicate and traversal prevention.
+- Large embedded-file streaming tests.
+- Container compatibility documentation.
+
+Exit gate:
+- Create, read, edit, rename, move, and remove operations pass lifecycle and
+  corruption tests.
+- Existing legacy hierarchy round-trips without data loss.
+- Large unchanged spans are copied efficiently where supported.
+
+PHASE 6 — Locks, history, contexts, and concurrency
+---------------------------------------------------
+Provisional release: 1.C.1 release candidate
+
+Goals:
+- Rebuild locks and stalk history.
+- Introduce explicit internal VFS contexts.
+- Preserve selected-path facade behavior.
+- Complete multiprocessing dispatch model.
+
+Deliverables:
+- locks.py.
+- history.py.
+- VFS context manager.
+- invoke_api.
+- map_api_calls.
+- Single-writer coordinator design.
+- Concurrent reader tests.
+- Conflicting mutation tests.
+- Stale mapping invalidation.
+- Bounded diagnostic event layer.
+
+Exit gate:
+- Multiple readers scale without exclusive read locking.
+- Writes to one VFS are serialized and transactional.
+- Independent VFS files can mutate concurrently.
+- Multiprocessing spawn tests pass on supported platforms.
+
+PHASE 7 — Migration, verification, and canonicalization
+-------------------------------------------------------
+Provisional release: 1.C.2
+
+Goals:
+- Safely move legacy files to canonical 1.x.x representation.
+- Detect unsupported or dangerous content.
+- Never destroy source files.
+- Produce comprehensive reports.
+
+Deliverables:
+- scan_vfs.
+- verify_vfs.
+- migrate_vfs.
+- canonicalize_vfs.
+- Migration report schema.
+- Source/destination comparison.
+- Unknown-record preservation rules.
+- Restricted legacy payload inspection.
+- Batch migration tool.
+
+Exit gate:
+- Representative legacy fixtures migrate with verified value and hierarchy
+  equivalence.
+- Unsupported features are reported, not discarded.
+- Destination files reopen through the new engine.
+
+PHASE 8 — Tree subsystem recovery
+---------------------------------
+Provisional release: 1.D.0 experimental
+
+Goals:
+- Recover and formalize original tree semantics.
+- Reimplement tree operations independently.
+- Preserve callable names.
+
+Scope:
+- addtree_stx.
+- addbranch_stx.
+- getbranch_stx.
+
+Deliverables:
+- Tree contract.
+- Typed tree model.
+- Iterative parser and traversal.
+- Depth, cycle, duplicate, and key-type tests.
+- Migration support.
+- Compatibility fixtures.
+
+Exit gate:
+- Every exposed tree mode has valid, invalid, persistence, and migration tests.
+- Tree failures cannot corrupt core variable records.
+
+PHASE 9 — Registry and safe expression subsystem
+------------------------------------------------
+Provisional release: 1.D.1 experimental
+
+Goals:
+- Replace generated and imported Python.
+- Define safe registry schemas.
+- Introduce constrained expression handling for legacy lambdas.
+
+Scope:
+- registry.
+- lambdalist.
+- lambdavar.
+
+Deliverables:
+- Registry contract.
+- Schema contract.
+- Safe expression intermediate representation.
+- Static validation.
+- Execution limits.
+- Legacy expression migration report.
+- Primitive and container type tests.
+- Security review.
+
+Exit gate:
+- Default operation contains no arbitrary eval, exec, or generated-module
+  import.
+- Unsupported expressions fail explicitly.
+
+PHASE 10 — Pojishon reconstruction
+----------------------------------
+Provisional release: 1.E.0 experimental
+
+Goals:
+- Formalize Pojishon grammar and modes.
+- Separate parsing, validation, and persistence.
+- Restore only evidenced behavior.
+
+Deliverables:
+- Mode inventory.
+- Grammar specification.
+- Parser.
+- Typed model.
+- Error-location system.
+- Round-trip fixtures.
+- Migration integration.
+- Performance and malformed-input tests.
+
+Exit gate:
+- Every public mode is implemented and tested, or explicitly unsupported.
+- No guessed silent behavior remains.
+
+PHASE 11 — Dark, genic, vital, and revar decisions
+---------------------------------------------------
+Provisional release: 1.E.1 experimental
+
+Goals:
+- Decide whether each feature is completed, redesigned, deprecated, or
+  retained only for migration.
+
+Scope:
+- darkvar.
+- genicvar.
+- vitalvar internals.
+- revar.
+
+Deliverables per feature:
+- Recovered intent.
+- Reachability report.
+- Public contract.
+- Persistence representation.
+- Security assessment.
+- Compatibility plan.
+- Implementation or formal deprecation.
+
+Exit gate:
+- No public function falsely reports success.
+- Each feature has a declared long-term state.
+
+PHASE 12 — Production consolidation
+-----------------------------------
+Provisional release: 1.F.0 stable
+
+Goals:
+- Make the new engine the default.
+- Keep legacy bridge only for migration and compatibility diagnostics.
+- Publish complete API and format documentation.
+- Establish long-term benchmark gates.
+
+Deliverables:
+- Stable package.
+- Compatibility facade.
+- Migration CLI.
+- Recovery CLI.
+- API reference.
+- SQTPP format reference.
+- Security guide.
+- Multiprocessing guide.
+- Benchmark report.
+- Upgrade guide.
+- Deprecation schedule.
+
+Exit gate:
+- Core, hierarchy, locks, history, migration, and process dispatch are stable.
+- Advanced features are either stable, clearly experimental, or formally
+  deprecated.
+- The original monolith is not used in ordinary production execution.
+
+
+TEST STRATEGY
+=============
+
+Unit tests
+----------
+- Marker parsing.
+- Identifier validation.
+- Path validation.
+- Header decoding.
+- Span calculations.
+- Codec operations.
+- Checksum operations.
+- Index insertion and invalidation.
+- Mutation plans.
+- Error translation.
+
+Property tests
+--------------
+- Core variable bit sequences.
+- Arbitrary valid names.
+- Round-trip supported values.
+- Record ordering.
+- Parser/serializer round trips.
+- Batch operations.
+- Random hierarchy operations.
+- Transaction revision conflicts.
+
+Integration tests
+-----------------
+- Complete VFS lifecycle.
+- Complete variable lifecycle.
+- Complete hierarchy lifecycle.
+- Complete embedded-file lifecycle.
+- Locks and history.
+- Trees.
+- Registry.
+- Pojishon.
+- Migration.
+- Backup and recovery.
+- Multiprocessing readers and writers.
+
+Differential tests
+------------------
+For verified legacy behavior:
+
+1. Run operation through the frozen original or stabilized bridge.
+2. Run operation through the new engine.
+3. Compare returned value.
+4. Parse resulting files into a neutral model.
+5. Compare logical state rather than incidental formatting.
+6. Record approved differences.
+
+Corruption tests
+----------------
+- Truncated file.
+- Truncated record.
+- Overlapping spans.
+- Invalid lengths.
+- Invalid encoding.
+- Duplicate variable.
+- Duplicate path.
+- Missing parent.
+- Broken lock.
+- Broken history chain.
+- Unknown extension.
+- Stale sidecar index.
+- Interrupted transaction.
+- Revision conflict.
+
+Fuzz testing
+------------
+- Structural parser.
+- Value codec.
+- Path parser.
+- Pojishon parser when available.
+- Registry schema parser when available.
+
+Cross-platform tests
+--------------------
+- POSIX file locks.
+- Windows msvcrt lock path.
+- Spawn multiprocessing.
+- Filesystem replace semantics.
+- Long paths.
+- Unicode names if supported.
+- Case-sensitive and case-insensitive filesystems.
+
+
+RELEASE AND COMPATIBILITY POLICY
+================================
+
+Patch release
+-------------
+Use 1.x.patch for:
+
+- Defect repairs.
+- Security hardening.
+- Performance improvements with unchanged supported behavior.
+- Documentation.
+- Additional diagnostics.
+- Compatibility corrections.
+
+Minor release
+-------------
+Use 1.minor.0 for:
+
+- New stable engine subsystems.
+- Complete hierarchy CRUD.
+- Migration tooling.
+- Reintroduced advanced features.
+- New optional API capabilities that preserve existing calls.
+
+Major release
+-------------
+Do not use 2.0 unless Staqtapp intentionally:
+
+- Breaks the public API contract.
+- Drops supported SQTPP compatibility.
+- Changes the product model beyond compatibility adaptation.
+
+Internal architecture generation
+--------------------------------
+Documentation may say:
+
+    Product: Staqtapp 1.x.x
+    Engine: Staqtapp Core, second-generation architecture
+    Storage: SQTPP legacy-compatible format plus versioned extensions
+
+This does not require a 2.0 product version.
+
+
+DOCUMENTATION DELIVERABLES
+==========================
+
+Required documents
+------------------
+
+- STAQTAPP_1X_OVERHAUL_ROADMAP.txt
+- PUBLIC_API_CONTRACT.md
+- SQTPP_FORMAT_REFERENCE.md
+- COMPATIBILITY_MATRIX.md
+- MIGRATION_GUIDE.md
+- MULTIPROCESSING_GUIDE.md
+- PERFORMANCE_METHODOLOGY.md
+- SECURITY_MODEL.md
+- RECOVERY_GUIDE.md
+- ADVANCED_FEATURE_STATUS.md
+- RELEASE_CHECKLIST.md
+
+Every public API entry must document:
+
+- Signature.
+- Accepted types.
+- Defaults.
+- Return shape.
+- Exceptions.
+- Side effects.
+- Lock behavior.
+- Transaction behavior.
+- Multiprocessing suitability.
+- Compatibility notes.
+- Performance characteristics where relevant.
+
+
+DEFINITION OF DONE
+==================
+
+The Staqtapp 1.x.x overhaul is complete when:
+
+1. The original public API focus is preserved through a compatibility facade.
+
+2. The production core no longer depends on the monolithic original
+   implementation.
+
+3. Supported SQTPP files can be read, verified, migrated, and rewritten without
+   logical data loss.
+
+4. Core variable CRUD is fully transactional and indexed.
+
+5. Directory, folder, subfolder, and embedded-file CRUD is complete.
+
+6. Locks and stalk history have explicit contracts and concurrency tests.
+
+7. Read paths use mmap and memoryview where measurements justify them.
+
+8. Internal record structures are compact and typed.
+
+9. Multiprocessing wrappers are top-level, allow-listed, and spawn-safe.
+
+10. Concurrent readers and serialized writers behave correctly.
+
+11. Every claimed optimization has repeatable benchmark evidence.
+
+12. Diagnostics are bounded and cannot control storage correctness.
+
+13. Arbitrary generated-code execution is absent from default production paths.
+
+14. Advanced features are individually stable, experimental, or formally
+    deprecated; none silently pretend to work.
+
+15. Migration never destroys the only source copy.
+
+16. Corruption and interruption tests pass.
+
+17. Cross-platform lock and process behavior is validated on supported systems.
+
+18. The release remains within the Staqtapp 1.x.x product line.
+
+
+IMMEDIATE NEXT ACTIONS
+======================
+
+1. Freeze and checksum:
+   - Original staqtapp.py.
+   - Refactored bridge.
+   - Audit document.
+   - Representative SQTPP files.
+
+2. Assign the actual current 1.x.x baseline from repository history.
+
+3. Extract every public function signature into an automated contract test.
+
+4. Build a feature-status matrix from the original module.
+
+5. Collect or create representative SQTPP fixtures:
+   - Empty.
+   - Variables.
+   - Locks.
+   - Stalk history.
+   - Trees.
+   - Registry.
+   - Pojishon.
+   - Dark/genic/vital if examples exist.
+   - Corrupted variants.
+
+6. Write the formal SQTPP marker and escaping catalogue.
+
+7. Implement the read-only mmap parser prototype.
+
+8. Compare read-only behavior for:
+   - setpath.
+   - listfiles.
+   - listvars.
+   - findvar.
+   - loadvar.
+   - vardata_stx.
+
+9. Establish pyperf benchmarks before mutation work begins.
+
+10. Do not add new features to the monolith while the extraction is underway,
+    except critical bridge fixes required to preserve or inspect legacy data.
+
+
+FINAL DIRECTION
+===============
+
+Staqtapp is not being discarded and it is not being renamed into an unrelated
+2.0 product.
+
+The overhaul preserves:
+
+- The Staqtapp name.
+- The 1.x.x version line.
+- The original API focus.
+- The SQTPP storage identity.
+- Verified user-facing behavior.
+- The intended advanced feature concepts.
+
+The overhaul replaces:
+
+- Monolithic raw-text mutation.
+- Unbounded scratch-state design.
+- Silent incomplete behavior.
+- Generated-code execution as storage logic.
+- Unsafe deserialization.
+- Whole-file eager decoding on routine reads.
+- Unmeasured performance assumptions.
+- Ambiguous concurrency.
+
+The target is a hard-nosed Python storage engine: mmap-backed reads,
+memoryview-oriented parsing, compact indexes, transactional writes, bounded
+diagnostics, spawn-safe callable wrappers, and a compatibility layer that keeps
+the original Staqtapp API recognizable throughout the 1.x.x rescue.
